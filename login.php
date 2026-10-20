@@ -19,7 +19,7 @@ if (
 $email = trim($rawEmail);
 
 if (
-    || $email === ''
+    $email === ''
     || filter_var($email, FILTER_VALIDATE_EMAIL) === false
     || $password === ''
     || strlen($password) > 4096
