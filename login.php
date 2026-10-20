@@ -29,7 +29,7 @@ if (
 
 try {
     $statement = $pdo->prepare(
-        'SELECT id, password FROM users WHERE email = :email LIMIT 1'
+        'SELECT id, full_name, role, password FROM users WHERE email = :email LIMIT 1'
     );
     $statement->execute(['email' => $email]);
     $user = $statement->fetch();
@@ -45,5 +45,7 @@ if ($user === false || !password_verify($password, $user['password'])) {
 json_response([
     'success' => true,
     'user_id' => (int) $user['id'],
-    'token' => 'mock-jwt-token',
+    'full_name' => $user['full_name'],
+    'role' => $user['role'] ?? 'user',
+    'token' => create_auth_token((int) $user['id'], (string) ($user['role'] ?? 'user')),
 ]);

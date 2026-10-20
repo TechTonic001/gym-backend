@@ -46,15 +46,12 @@ function require_post_request(): void
     }
 }
 
-$dbHost = getenv('DB_HOST') ?: '127.0.0.1';
+$dbHost = getenv('DB_HOST') ?: 'localhost';
 $dbName = getenv('DB_NAME') ?: 'gym_app';
-$dbUser = getenv('DB_USER');
+$dbUser = getenv('DB_USER') ?: 'root';
 $dbPassword = getenv('DB_PASSWORD');
 
-if ($dbUser === false || $dbUser === '' || $dbPassword === false) {
-    error_log('Database connection configuration is missing.');
-    json_response(['success' => false, 'message' => 'Service unavailable'], 500);
-}
+$dbPassword = $dbPassword === false ? '' : $dbPassword;
 
 try {
     $pdo = new PDO(
@@ -70,4 +67,34 @@ try {
 } catch (PDOException $exception) {
     error_log('Database connection failed: ' . $exception->getMessage());
     json_response(['success' => false, 'message' => 'Service unavailable'], 500);
+}
+
+function create_auth_token(int $userId, string $role): string
+{
+    $secret = getenv('JWT_SECRET');
+    if ($secret === false || strlen($secret) < 32) {
+        error_log('JWT_SECRET must be configured with at least 32 characters.');
+        json_response(['success' => false, 'message' => 'Service unavailable'], 500);
+    }
+
+    $now = time();
+    $header = ['alg' => 'HS256', 'typ' => 'JWT'];
+    $payload = [
+        'sub' => (string) $userId,
+        'role' => $role,
+        'iat' => $now,
+        'exp' => $now + 3600,
+    ];
+
+    $base64UrlEncode = static fn (string $value): string => rtrim(
+        strtr(base64_encode($value), '+/', '-_'),
+        '='
+    );
+
+    $unsignedToken = $base64UrlEncode(json_encode($header, JSON_THROW_ON_ERROR))
+        . '.'
+        . $base64UrlEncode(json_encode($payload, JSON_THROW_ON_ERROR));
+    $signature = hash_hmac('sha256', $unsignedToken, $secret, true);
+
+    return $unsignedToken . '.' . $base64UrlEncode($signature);
 }
