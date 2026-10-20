@@ -64,7 +64,4 @@ try {
     json_response(['success' => false, 'message' => 'Service unavailable'], 500);
 }
 
-json_response([
-    'success' => true,
-    'message' => 'User registered successfully.',
-], 201);
+json_response(['success' => true, 'message' => 'User registered'], 201);

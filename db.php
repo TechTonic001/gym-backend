@@ -46,27 +46,38 @@ function require_post_request(): void
     }
 }
 
-$dbHost = getenv('DB_HOST') ?: 'localhost';
-$dbName = getenv('DB_NAME') ?: 'gym_app';
-$dbUser = getenv('DB_USER') ?: 'root';
-$dbPassword = getenv('DB_PASSWORD');
+$connectionStrings = [
+    'mysql:host=127.0.0.1;dbname=gym_app;charset=utf8',
+    'mysql:host=localhost;dbname=gym_app;charset=utf8',
+    'mysql:unix_socket=/opt/lampp/var/mysql/mysql.sock;dbname=gym_app;charset=utf8',
+];
+$lastConnectionException = null;
 
-$dbPassword = $dbPassword === false ? '' : $dbPassword;
+foreach ($connectionStrings as $dsn) {
+    try {
+        $pdo = new PDO(
+            $dsn,
+            'root',
+            '',
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ]
+        );
+        $lastConnectionException = null;
+        break;
+    } catch (PDOException $exception) {
+        $lastConnectionException = $exception;
+        error_log('MySQL connection failed for ' . $dsn . ': ' . $exception->getMessage());
+    }
+}
 
-try {
-    $pdo = new PDO(
-        "mysql:host={$dbHost};dbname={$dbName};charset=utf8mb4",
-        $dbUser,
-        $dbPassword,
-        [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
-        ]
-    );
-} catch (PDOException $exception) {
-    error_log('Database connection failed: ' . $exception->getMessage());
-    json_response(['success' => false, 'message' => 'Service unavailable'], 500);
+if ($lastConnectionException !== null) {
+    json_response([
+        'success' => false,
+        'message' => $lastConnectionException->getMessage(),
+    ], 500);
 }
 
 function create_auth_token(int $userId, string $role): string
