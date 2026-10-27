@@ -1,6 +1,58 @@
 <?php
 declare(strict_types=1);
 
+function load_local_env(string $filePath): void
+{
+    if (!is_file($filePath) || !is_readable($filePath)) {
+        return;
+    }
+
+    $lines = file($filePath, FILE_IGNORE_NEW_LINES);
+    if ($lines === false) {
+        error_log('Unable to read local environment file.');
+        return;
+    }
+
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+            continue;
+        }
+
+        [$key, $value] = explode('=', $line, 2);
+        $key = trim($key);
+        $value = trim($value);
+
+        if (!preg_match('/\A[A-Za-z_][A-Za-z0-9_]*\z/', $key)) {
+            continue;
+        }
+
+        if (
+            strlen($value) >= 2
+            && (($value[0] === '"' && $value[-1] === '"')
+                || ($value[0] === "'" && $value[-1] === "'"))
+        ) {
+            $value = substr($value, 1, -1);
+        }
+
+        $existingValue = getenv($key);
+        if ($existingValue !== false) {
+            $_ENV[$key] = $existingValue;
+            continue;
+        }
+
+        $_ENV[$key] = $value;
+        putenv($key . '=' . $value);
+    }
+}
+
+function environment_value(string $key): string|false
+{
+    return getenv($key) ?: ($_ENV[$key] ?? false);
+}
+
+load_local_env(__DIR__ . '/.env');
+
 $allowedOrigins = [
     'https://form-fit-one.vercel.app',
     'http://localhost:4200',
@@ -77,12 +129,12 @@ function require_auth_request(string $operation, array $requiredFields): void
     }
 }
 
-$databaseHost = getenv('DB_HOST');
-$databaseName = getenv('DB_NAME');
-$databaseUser = getenv('DB_USER');
-$databasePassword = getenv('DB_PASSWORD');
-$databasePort = getenv('DB_PORT') ?: '3306';
-$runningOnVercel = getenv('VERCEL') === '1';
+$databaseHost = environment_value('DB_HOST');
+$databaseName = environment_value('DB_NAME');
+$databaseUser = environment_value('DB_USER');
+$databasePassword = environment_value('DB_PASS') ?: environment_value('DB_PASSWORD');
+$databasePort = environment_value('DB_PORT') ?: '3306';
+$runningOnVercel = environment_value('VERCEL') === '1';
 $hasDatabaseEnvironment = $databaseHost !== false
     || $databaseName !== false
     || $databaseUser !== false
@@ -98,13 +150,13 @@ if ($hasDatabaseEnvironment) {
         !is_string($databaseHost) || $databaseHost === ''
         || !is_string($databaseName) || $databaseName === ''
         || !is_string($databaseUser) || $databaseUser === ''
-        || !is_string($databasePassword)
+        || !is_string($databasePassword) || $databasePassword === ''
         || !is_string($databasePort)
         || filter_var($databasePort, FILTER_VALIDATE_INT, [
             'options' => ['min_range' => 1, 'max_range' => 65535],
         ]) === false
     ) {
-        error_log('DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD must be configured correctly.');
+        error_log('DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASS must be configured correctly.');
         json_response(['success' => false, 'message' => 'Service unavailable'], 500);
     }
 
@@ -155,7 +207,7 @@ if ($lastConnectionException !== null) {
 
 function create_auth_token(int $userId, string $role): string
 {
-    $secret = getenv('JWT_SECRET');
+    $secret = environment_value('JWT_SECRET');
     if ($secret === false && is_file(__DIR__ . '/config.local.php')) {
         $localConfig = require __DIR__ . '/config.local.php';
         $secret = is_array($localConfig) ? ($localConfig['jwt_secret'] ?? false) : false;

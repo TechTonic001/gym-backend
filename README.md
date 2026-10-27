@@ -1,27 +1,35 @@
 # Gym backend deployment
 
+## Local environment setup
+
+Copy `.env.example` to `.env` in the backend root, then replace
+`DB_PASS` with the Clever Cloud database password. `.env` is ignored by Git;
+do not commit it. The API reads local `.env` values without a third-party
+dependency.
+
 ## Deploying to Vercel
 
 This repository is a PHP API. `vercel.json` configures the PHP runtime for the
 PHP endpoints, and `/` returns a small JSON health response. Deploy the
 repository root as the Vercel project root.
 
-Vercel does not provide the local XAMPP MySQL database. Configure these
-environment variables in the Vercel project using credentials for a remotely
-accessible MySQL database:
+In Vercel, open the backend project, choose **Settings → Environment
+Variables**, and add these keys for the **Production** environment (and
+Preview too if you test preview deployments):
 
-- `DB_HOST` — the Clever Cloud MySQL hostname
-- `DB_PORT` — `3306`
-- `DB_NAME` — the Clever Cloud database name
-- `DB_USER` — the Clever Cloud database username
-- `DB_PASSWORD` — enter the actual database password through Vercel's environment-variable settings; never commit it
-- `JWT_SECRET` (at least 32 characters)
+- `DB_HOST` = `bt70bds5cvwfaxrji9yy-mysql.services.clever-cloud.com`
+- `DB_PORT` = `3306`
+- `DB_NAME` = `bt70bds5cvwfaxrji9yy`
+- `DB_USER` = `ugt8vls42xrbvld0`
+- `DB_PASS` = your actual Clever Cloud database password
+- `JWT_SECRET` = a randomly generated secret with at least 32 characters
 
-Set the variables for the Production environment and redeploy after adding or
-changing them. Keep `config.local.php` local; it is intentionally excluded
-from Git. The backend returns a generic JSON service error if these required
-Vercel settings are missing or invalid and logs connection details only to
-the server log.
+Save each variable, then redeploy the backend so the production functions
+receive them. Vercel does not read the committed `.env.example` or local
+`.env` file. Never put the actual database password or JWT secret in GitHub.
+Keep `config.local.php` local; it is intentionally excluded from Git. The API
+returns a generic JSON service error if required production settings are
+missing or invalid and logs connection details only to the server log.
 
-For local XAMPP development, the existing `gym_app` database defaults remain
-in place when the `DB_*` environment variables are not set.
+The local `.env` values take effect only when Vercel/server environment
+variables are not already set, so Vercel's configured values take precedence.

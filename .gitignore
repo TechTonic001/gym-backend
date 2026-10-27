@@ -1,1 +1,4 @@
 /config.local.php
+.env
+.env.*
+!.env.example
