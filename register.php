@@ -27,7 +27,7 @@ $email = trim($rawEmail);
 if (
     $fullName === ''
     || strlen($fullName) > 100
-    || !preg_match('/\A[A-Za-z0-9._-]{3,30}\z/', $username)
+    || !preg_match('/\A[A-Za-z0-9._\-]{3,30}\z/', $username)
     || $email === ''
     || strlen($email) > 100
     || filter_var($email, FILTER_VALIDATE_EMAIL) === false
