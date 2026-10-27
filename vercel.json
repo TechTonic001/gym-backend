@@ -1,18 +1,50 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "*.php": {
+    "api/*.php": {
       "runtime": "vercel-php@0.9.0"
     }
   },
   "rewrites": [
+    {
+      "source": "/book_class.php",
+      "destination": "/api/book_class.php"
+    },
+    {
+      "source": "/get_classes.php",
+      "destination": "/api/get_classes.php"
+    },
+    {
+      "source": "/get_profile.php",
+      "destination": "/api/get_profile.php"
+    },
+    {
+      "source": "/get_user_bookings.php",
+      "destination": "/api/get_user_bookings.php"
+    },
+    {
+      "source": "/get_workout_analytics.php",
+      "destination": "/api/get_workout_analytics.php"
+    },
+    {
+      "source": "/login.php",
+      "destination": "/api/login.php"
+    },
+    {
+      "source": "/register.php",
+      "destination": "/api/register.php"
+    },
+    {
+      "source": "/update_profile.php",
+      "destination": "/api/update_profile.php"
+    },
     {
       "source": "/favicon.ico",
       "destination": "/favicon.svg"
     },
     {
       "source": "/",
-      "destination": "/index.php"
+      "destination": "/api/index.php"
     }
   ]
 }
