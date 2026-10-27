@@ -1,81 +1,21 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": {
-    "api/*.php": {
-      "runtime": "vercel-php@0.9.0"
-    }
-  },
-  "headers": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "https://form-fit-one.vercel.app"
-        },
-        {
-          "key": "Access-Control-Allow-Credentials",
-          "value": "true"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, PUT, DELETE, OPTIONS"
-        },
-        {
-          "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-CSRF-Token, Cache-Control, Pragma"
-        },
-        {
-          "key": "Access-Control-Max-Age",
-          "value": "86400"
-        },
-        {
-          "key": "Vary",
-          "value": "Origin, Access-Control-Request-Headers, Access-Control-Request-Method"
-        }
-      ]
+      "src": "*.php",
+      "use": "vercel-php@0.7.3"
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/book_class.php",
-      "destination": "/api/book_class.php"
-    },
-    {
-      "source": "/get_classes.php",
-      "destination": "/api/get_classes.php"
-    },
-    {
-      "source": "/get_profile.php",
-      "destination": "/api/get_profile.php"
-    },
-    {
-      "source": "/get_user_bookings.php",
-      "destination": "/api/get_user_bookings.php"
-    },
-    {
-      "source": "/get_workout_analytics.php",
-      "destination": "/api/get_workout_analytics.php"
-    },
-    {
-      "source": "/login.php",
-      "destination": "/api/login.php"
-    },
-    {
-      "source": "/register.php",
-      "destination": "/api/register.php"
-    },
-    {
-      "source": "/update_profile.php",
-      "destination": "/api/update_profile.php"
-    },
-    {
-      "source": "/favicon.ico",
-      "destination": "/favicon.svg"
-    },
-    {
-      "source": "/",
-      "destination": "/api/index.php"
+      "src": "/(.*)",
+      "dest": "/$1",
+      "headers": {
+        "Access-Control-Allow-Origin": "https://form-fit-one.vercel.app",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+        "Access-Control-Allow-Credentials": "true"
+      }
     }
   ]
 }
