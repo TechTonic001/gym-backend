@@ -82,10 +82,16 @@ $databaseName = getenv('DB_NAME');
 $databaseUser = getenv('DB_USER');
 $databasePassword = getenv('DB_PASSWORD');
 $databasePort = getenv('DB_PORT') ?: '3306';
+$runningOnVercel = getenv('VERCEL') === '1';
 $hasDatabaseEnvironment = $databaseHost !== false
     || $databaseName !== false
     || $databaseUser !== false
     || $databasePassword !== false;
+
+if ($runningOnVercel && !$hasDatabaseEnvironment) {
+    error_log('Database environment variables are required on Vercel.');
+    json_response(['success' => false, 'message' => 'Service unavailable'], 500);
+}
 
 if ($hasDatabaseEnvironment) {
     if (
@@ -93,8 +99,12 @@ if ($hasDatabaseEnvironment) {
         || !is_string($databaseName) || $databaseName === ''
         || !is_string($databaseUser) || $databaseUser === ''
         || !is_string($databasePassword)
+        || !is_string($databasePort)
+        || filter_var($databasePort, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => 65535],
+        ]) === false
     ) {
-        error_log('DB_HOST, DB_NAME, DB_USER, and DB_PASSWORD must all be configured.');
+        error_log('DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD must be configured correctly.');
         json_response(['success' => false, 'message' => 'Service unavailable'], 500);
     }
 
@@ -128,6 +138,7 @@ foreach ($connectionStrings as $dsn) {
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
+                PDO::ATTR_TIMEOUT => 5,
             ]
         );
         $lastConnectionException = null;
