@@ -66,19 +66,53 @@ function require_auth_request(string $operation, array $requiredFields): void
     }
 }
 
-$connectionStrings = [
-    'mysql:host=127.0.0.1;dbname=gym_app;charset=utf8',
-    'mysql:host=localhost;dbname=gym_app;charset=utf8',
-    'mysql:unix_socket=/opt/lampp/var/mysql/mysql.sock;dbname=gym_app;charset=utf8',
-];
+$databaseHost = getenv('DB_HOST');
+$databaseName = getenv('DB_NAME');
+$databaseUser = getenv('DB_USER');
+$databasePassword = getenv('DB_PASSWORD');
+$databasePort = getenv('DB_PORT') ?: '3306';
+$hasDatabaseEnvironment = $databaseHost !== false
+    || $databaseName !== false
+    || $databaseUser !== false
+    || $databasePassword !== false;
+
+if ($hasDatabaseEnvironment) {
+    if (
+        !is_string($databaseHost) || $databaseHost === ''
+        || !is_string($databaseName) || $databaseName === ''
+        || !is_string($databaseUser) || $databaseUser === ''
+        || !is_string($databasePassword)
+    ) {
+        error_log('DB_HOST, DB_NAME, DB_USER, and DB_PASSWORD must all be configured.');
+        json_response(['success' => false, 'message' => 'Service unavailable'], 500);
+    }
+
+    $connectionStrings = [
+        'mysql:host=' . $databaseHost
+            . ';port=' . $databasePort
+            . ';dbname=' . $databaseName
+            . ';charset=utf8mb4',
+    ];
+    $connectionUser = $databaseUser;
+    $connectionPassword = $databasePassword;
+} else {
+    $connectionStrings = [
+        'mysql:host=127.0.0.1;dbname=gym_app;charset=utf8',
+        'mysql:host=localhost;dbname=gym_app;charset=utf8',
+        'mysql:unix_socket=/opt/lampp/var/mysql/mysql.sock;dbname=gym_app;charset=utf8',
+    ];
+    $connectionUser = 'root';
+    $connectionPassword = '';
+}
+
 $lastConnectionException = null;
 
 foreach ($connectionStrings as $dsn) {
     try {
         $pdo = new PDO(
             $dsn,
-            'root',
-            '',
+            $connectionUser,
+            $connectionPassword,
             [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -89,15 +123,12 @@ foreach ($connectionStrings as $dsn) {
         break;
     } catch (PDOException $exception) {
         $lastConnectionException = $exception;
-        error_log('MySQL connection failed for ' . $dsn . ': ' . $exception->getMessage());
+        error_log('MySQL connection failed: ' . $exception->getMessage());
     }
 }
 
 if ($lastConnectionException !== null) {
-    json_response([
-        'success' => false,
-        'message' => $lastConnectionException->getMessage(),
-    ], 500);
+    json_response(['success' => false, 'message' => 'Service unavailable'], 500);
 }
 
 function create_auth_token(int $userId, string $role): string
