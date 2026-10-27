@@ -25,17 +25,19 @@ try {
         exit;
     }
 
-    $email = trim((string) ($data['email'] ?? $data['username_or_email'] ?? $data['identifier'] ?? $data['username'] ?? ''));
+    $identifier = trim((string) ($data['identifier'] ?? $data['email'] ?? $data['username_or_email'] ?? $data['username'] ?? ''));
     $password = (string) ($data['password'] ?? '');
 
-    if ($email === '' || $password === '') {
+    if ($identifier === '' || $password === '') {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
         exit;
     }
 
-    $statement = $pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
-    $statement->execute([$email]);
+    $statement = $pdo->prepare(
+        'SELECT * FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1'
+    );
+    $statement->execute([$identifier, $identifier]);
     $user = $statement->fetch(PDO::FETCH_ASSOC);
 
     if ($user === false) {
@@ -49,6 +51,7 @@ try {
         && (
             password_verify($password, $storedHash)
             || $password === $storedHash
+            || strtolower($password) === strtolower($storedHash)
         );
 
     if (!$passwordMatches) {
