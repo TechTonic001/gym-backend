@@ -15,22 +15,18 @@ try {
         exit;
     }
 
-    $rawBody = file_get_contents('php://input');
-    if ($rawBody === false || trim($rawBody) === '') {
+    $rawInput = file_get_contents('php://input');
+    $jsonData = json_decode($rawInput === false ? '' : $rawInput, true);
+    $data = is_array($jsonData) ? $jsonData : $_POST;
+
+    if (!is_array($data)) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Request body is required']);
+        echo json_encode(['success' => false, 'message' => 'Invalid JSON or form payload']);
         exit;
     }
 
-    $input = json_decode($rawBody, true);
-    if (!is_array($input)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid JSON payload']);
-        exit;
-    }
-
-    $email = trim((string) ($input['email'] ?? $input['username_or_email'] ?? ''));
-    $password = (string) ($input['password'] ?? '');
+    $email = trim((string) ($data['email'] ?? $data['username_or_email'] ?? $data['identifier'] ?? $data['username'] ?? ''));
+    $password = (string) ($data['password'] ?? '');
 
     if ($email === '' || $password === '') {
         http_response_code(400);

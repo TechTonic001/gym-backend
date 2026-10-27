@@ -16,12 +16,21 @@ try {
     }
 
     require_auth_request('Registration', ['full_name', 'username', 'email', 'password']);
-    $input = read_request_body();
 
-    $rawFullName = $input['full_name'] ?? $input['fullName'] ?? $input['name'] ?? null;
-    $rawUsername = $input['username'] ?? null;
-    $rawEmail = $input['email'] ?? null;
-    $password = $input['password'] ?? null;
+    $rawInput = file_get_contents('php://input');
+    $jsonData = json_decode($rawInput === false ? '' : $rawInput, true);
+    $data = is_array($jsonData) ? $jsonData : $_POST;
+
+    if (!is_array($data)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Invalid JSON or form payload']);
+        exit();
+    }
+
+    $rawFullName = $data['full_name'] ?? $data['fullName'] ?? $data['name'] ?? null;
+    $rawUsername = $data['username'] ?? null;
+    $rawEmail = $data['email'] ?? null;
+    $password = $data['password'] ?? null;
 
     if (
         !is_string($rawFullName)
