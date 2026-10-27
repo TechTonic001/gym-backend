@@ -25,24 +25,24 @@ try {
         exit;
     }
 
-    $identifier = trim((string) ($data['identifier'] ?? $data['email'] ?? $data['username_or_email'] ?? $data['username'] ?? ''));
+    $identifier = trim((string) ($data['email'] ?? $data['username'] ?? $data['identifier'] ?? $data['full_name'] ?? ''));
     $password = (string) ($data['password'] ?? '');
 
     if ($identifier === '' || $password === '') {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
+        echo json_encode(['success' => false, 'message' => 'Invalid username or password']);
         exit;
     }
 
     $statement = $pdo->prepare(
-        'SELECT * FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1'
+        'SELECT * FROM users WHERE email = ? OR username = ? OR full_name = ? LIMIT 1'
     );
-    $statement->execute([$identifier, $identifier]);
+    $statement->execute([$identifier, $identifier, $identifier]);
     $user = $statement->fetch(PDO::FETCH_ASSOC);
 
     if ($user === false) {
         http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
+        echo json_encode(['success' => false, 'message' => 'Invalid username or password']);
         exit;
     }
 
@@ -56,22 +56,25 @@ try {
 
     if (!$passwordMatches) {
         http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
+        echo json_encode(['success' => false, 'message' => 'Invalid username or password']);
         exit;
     }
 
     $userId = (int) ($user['user_id'] ?? 0);
     $fullName = (string) ($user['full_name'] ?? '');
     $role = (string) ($user['role'] ?? 'member');
-    $token = function_exists('create_auth_token') ? create_auth_token($userId, $role) : null;
+    $token = function_exists('create_auth_token') ? create_auth_token($userId, $role) : bin2hex(random_bytes(16));
 
     echo json_encode([
         'success' => true,
+        'status' => 'success',
+        'message' => 'Login successful',
+        'token' => $token,
         'user_id' => $userId,
         'full_name' => $fullName,
         'role' => $role,
-        'token' => $token,
         'user' => $user,
+        'data' => $user,
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 } catch (Throwable $e) {
