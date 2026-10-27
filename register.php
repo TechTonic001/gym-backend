@@ -75,13 +75,13 @@ try {
 
     $insert = $pdo->prepare(
         'INSERT INTO users (full_name, username, email, password_hash)
-        VALUES (:full_name, :username, :email, :password)'
+        VALUES (:full_name, :username, :email, :password_hash)'
     );
     $insert->execute([
         'full_name' => $fullName,
         'username' => $username,
         'email' => $email,
-        'password' => $passwordHash,
+        'password_hash' => $passwordHash,
     ]);
 
     json_response(['success' => true, 'message' => 'User registered'], 201);
