@@ -59,9 +59,31 @@ function load_local_env(string $filePath): void
     }
 }
 
+function default_environment_value(string $key): string|false
+{
+    return match ($key) {
+        'DB_HOST' => 'bt70bds5cvwfaxrji9yy-mysql.services.clever-cloud.com',
+        'DB_PORT' => '3306',
+        'DB_NAME' => 'bt70bds5cvwfaxrji9yy',
+        'DB_USER' => 'ugt8vls42xrbvld0',
+        'DB_PASS', 'DB_PASSWORD' => '[PASTE_MY_CLEVER_CLOUD_PASSWORD_HERE]',
+        default => false,
+    };
+}
+
 function environment_value(string $key): string|false
 {
-    return getenv($key) ?: ($_ENV[$key] ?? false);
+    $value = getenv($key);
+    if (is_string($value) && $value !== '') {
+        return $value;
+    }
+
+    $value = $_ENV[$key] ?? false;
+    if (is_string($value) && $value !== '') {
+        return $value;
+    }
+
+    return default_environment_value($key);
 }
 
 load_local_env(__DIR__ . '/.env');
@@ -195,6 +217,7 @@ foreach ($connectionStrings as $dsn) {
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
                 PDO::ATTR_TIMEOUT => 5,
+                PDO::ATTR_PERSISTENT => false,
             ]
         );
         $lastConnectionException = null;
