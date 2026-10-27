@@ -1,10 +1,27 @@
 <?php
 declare(strict_types=1);
 
-$origin = $_SERVER['HTTP_ORIGIN'] ?? 'https://form-fit-one.vercel.app';
+function allowed_origin(): string
+{
+    $allowedOrigins = [
+        'https://form-fit-one.vercel.app',
+        'https://www.form-fit-one.vercel.app',
+        'http://localhost:4200',
+        'http://127.0.0.1:4200',
+    ];
+
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    if ($origin !== '' && in_array($origin, $allowedOrigins, true)) {
+        return $origin;
+    }
+
+    return $allowedOrigins[0];
+}
+
+$origin = allowed_origin();
 header('Access-Control-Allow-Origin: ' . $origin);
 header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS, PATCH');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin');
 header('Content-Type: application/json; charset=UTF-8');
 
@@ -77,6 +94,39 @@ function environment_value(string $key): string|false
     ];
 
     return $fallbacks[$key] ?? false;
+}
+
+function read_request_body(): array
+{
+    $rawBody = file_get_contents('php://input');
+    if ($rawBody === false || trim($rawBody) === '') {
+        return [];
+    }
+
+    $decoded = json_decode($rawBody, true);
+    if (is_array($decoded)) {
+        return $decoded;
+    }
+
+    parse_str($rawBody, $formData);
+    return is_array($formData) ? $formData : [];
+}
+
+function create_auth_token(int $userId, string $role): string
+{
+    $secret = getenv('JWT_SECRET') ?: 'gym-backend-dev-secret';
+    $issuedAt = time();
+    $payload = json_encode([
+        'sub' => $userId,
+        'role' => $role,
+        'iat' => $issuedAt,
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+    if ($payload === false) {
+        return bin2hex(random_bytes(16));
+    }
+
+    return hash_hmac('sha256', $payload, $secret);
 }
 
 function json_response(array $payload, int $status = 200): never
