@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 
-require_post_request();
-$input = read_json_body();
+require_auth_request('Registration', ['full_name', 'email', 'password']);
+$input = read_request_body();
 
-$rawFullName = $input['full_name'] ?? null;
+$rawFullName = $input['full_name'] ?? $input['fullName'] ?? $input['name'] ?? null;
 $rawEmail = $input['email'] ?? null;
 $password = $input['password'] ?? null;
 
@@ -23,9 +23,9 @@ $email = trim($rawEmail);
 
 if (
     $fullName === ''
-    || strlen($fullName) > 255
+    || strlen($fullName) > 100
     || $email === ''
-    || strlen($email) > 254
+    || strlen($email) > 100
     || filter_var($email, FILTER_VALIDATE_EMAIL) === false
     || $password === ''
     || strlen($password) > 4096
@@ -40,7 +40,7 @@ if ($passwordHash === false) {
 }
 
 try {
-    $check = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
+    $check = $pdo->prepare('SELECT user_id FROM users WHERE email = :email LIMIT 1');
     $check->execute(['email' => $email]);
 
     if ($check->fetch() !== false) {
@@ -48,7 +48,7 @@ try {
     }
 
     $insert = $pdo->prepare(
-        'INSERT INTO users (full_name, email, password) VALUES (:full_name, :email, :password)'
+        'INSERT INTO users (full_name, email, password_hash) VALUES (:full_name, :email, :password)'
     );
     $insert->execute([
         'full_name' => $fullName,

@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 
-require_post_request();
-$input = read_json_body();
+require_auth_request('Login', ['email', 'password']);
+$input = read_request_body();
 
 $rawEmail = $input['email'] ?? null;
 $password = $input['password'] ?? null;
@@ -29,7 +29,7 @@ if (
 
 try {
     $statement = $pdo->prepare(
-        'SELECT id, full_name, role, password FROM users WHERE email = :email LIMIT 1'
+        'SELECT user_id, full_name, role, password_hash FROM users WHERE email = :email LIMIT 1'
     );
     $statement->execute(['email' => $email]);
     $user = $statement->fetch();
@@ -38,14 +38,17 @@ try {
     json_response(['success' => false, 'message' => 'Service unavailable'], 500);
 }
 
-if ($user === false || !password_verify($password, $user['password'])) {
+if ($user === false || !password_verify($password, $user['password_hash'])) {
     json_response(['success' => false, 'message' => 'Invalid email or password'], 401);
 }
 
+$userId = (int) $user['user_id'];
+$role = (string) ($user['role'] ?? 'member');
+
 json_response([
     'success' => true,
-    'user_id' => (int) $user['id'],
+    'user_id' => $userId,
     'full_name' => $user['full_name'],
-    'role' => $user['role'] ?? 'user',
-    'token' => create_auth_token((int) $user['id'], (string) ($user['role'] ?? 'user')),
+    'role' => $role,
+    'token' => create_auth_token($userId, $role),
 ]);

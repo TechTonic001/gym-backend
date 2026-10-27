@@ -18,8 +18,17 @@ function json_response(array $payload, int $status = 200): never
     exit;
 }
 
-function read_json_body(): array
+function read_request_body(): array
 {
+    $contentType = strtolower(trim(explode(';', $_SERVER['CONTENT_TYPE'] ?? '')[0]));
+
+    if (
+        $contentType === 'application/x-www-form-urlencoded'
+        || $contentType === 'multipart/form-data'
+    ) {
+        return $_POST;
+    }
+
     try {
         $data = json_decode(
             file_get_contents('php://input'),
@@ -38,10 +47,21 @@ function read_json_body(): array
     return $data;
 }
 
-function require_post_request(): void
+function require_auth_request(string $operation, array $requiredFields): void
 {
-    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-        header('Allow: POST, OPTIONS');
+    $method = $_SERVER['REQUEST_METHOD'] ?? '';
+
+    if ($method === 'GET') {
+        json_response([
+            'success' => true,
+            'message' => $operation . ' API is ready',
+            'method' => 'POST',
+            'required_fields' => $requiredFields,
+        ]);
+    }
+
+    if ($method !== 'POST') {
+        header('Allow: GET, POST, OPTIONS');
         json_response(['success' => false, 'message' => 'Method not allowed'], 405);
     }
 }
@@ -83,7 +103,12 @@ if ($lastConnectionException !== null) {
 function create_auth_token(int $userId, string $role): string
 {
     $secret = getenv('JWT_SECRET');
-    if ($secret === false || strlen($secret) < 32) {
+    if ($secret === false && is_file(__DIR__ . '/config.local.php')) {
+        $localConfig = require __DIR__ . '/config.local.php';
+        $secret = is_array($localConfig) ? ($localConfig['jwt_secret'] ?? false) : false;
+    }
+
+    if (!is_string($secret) || strlen($secret) < 32) {
         error_log('JWT_SECRET must be configured with at least 32 characters.');
         json_response(['success' => false, 'message' => 'Service unavailable'], 500);
     }
