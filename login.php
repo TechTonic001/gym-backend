@@ -4,60 +4,74 @@ declare(strict_types=1);
 require_once __DIR__ . '/db.php';
 
 try {
-    require_auth_request('Login', ['username_or_email', 'password']);
-    $input = read_request_body();
-
-    $rawIdentifier = $input['username_or_email'] ?? $input['identifier'] ?? $input['email'] ?? null;
-    $password = $input['password'] ?? null;
-
-    if (!is_string($rawIdentifier) || !is_string($password)) {
-        json_response(['success' => false, 'message' => 'Invalid email or password'], 400);
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
+        http_response_code(200);
+        exit;
     }
 
-    $identifier = trim($rawIdentifier);
-
-    if (
-        $identifier === ''
-        || strlen($identifier) > 100
-        || $password === ''
-        || strlen($password) > 4096
-    ) {
-        json_response(['success' => false, 'message' => 'Invalid email or password'], 400);
+    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+        http_response_code(405);
+        echo json_encode(['success' => false, 'message' => 'Only POST requests are allowed']);
+        exit;
     }
 
-    $statement = $pdo->prepare(
-        'SELECT user_id, full_name, role, password_hash
-        FROM users
-        WHERE email = :email OR username = :username
-        LIMIT 1'
-    );
-    $statement->execute([
-        'email' => $identifier,
-        'username' => $identifier,
-    ]);
-    $user = $statement->fetch();
-
-    if ($user === false || !password_verify($password, $user['password_hash'])) {
-        json_response(['success' => false, 'message' => 'Invalid email or password'], 401);
+    $rawBody = file_get_contents('php://input');
+    if ($rawBody === false || trim($rawBody) === '') {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Request body is required']);
+        exit;
     }
 
-    $userId = (int) $user['user_id'];
+    $input = json_decode($rawBody, true);
+    if (!is_array($input)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Invalid JSON payload']);
+        exit;
+    }
+
+    $email = trim((string) ($input['email'] ?? $input['username_or_email'] ?? ''));
+    $password = (string) ($input['password'] ?? '');
+
+    if ($email === '' || $password === '') {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
+        exit;
+    }
+
+    $statement = $pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
+    $statement->execute([$email]);
+    $user = $statement->fetch(PDO::FETCH_ASSOC);
+
+    if ($user === false) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
+        exit;
+    }
+
+    $storedPassword = $user['password_hash'] ?? $user['password'] ?? null;
+    if (!is_string($storedPassword) || !password_verify($password, $storedPassword)) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
+        exit;
+    }
+
+    $userId = (int) ($user['user_id'] ?? 0);
+    $fullName = (string) ($user['full_name'] ?? '');
     $role = (string) ($user['role'] ?? 'member');
 
-    json_response([
+    echo json_encode([
         'success' => true,
         'user_id' => $userId,
-        'full_name' => $user['full_name'],
+        'full_name' => $fullName,
         'role' => $role,
-        'token' => create_auth_token($userId, $role),
-    ]);
+        'token' => function_exists('create_auth_token') ? create_auth_token($userId, $role) : null,
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
 } catch (Throwable $e) {
     http_response_code(500);
-    header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage(),
-        'file' => $e->getFile(),
         'line' => $e->getLine(),
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
