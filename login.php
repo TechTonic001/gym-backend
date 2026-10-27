@@ -3,24 +3,24 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 
-require_auth_request('Login', ['email', 'password']);
+require_auth_request('Login', ['username_or_email', 'password']);
 $input = read_request_body();
 
-$rawEmail = $input['email'] ?? null;
+$rawIdentifier = $input['username_or_email'] ?? $input['identifier'] ?? $input['email'] ?? null;
 $password = $input['password'] ?? null;
 
 if (
-    !is_string($rawEmail)
+    !is_string($rawIdentifier)
     || !is_string($password)
 ) {
     json_response(['success' => false, 'message' => 'Invalid email or password'], 400);
 }
 
-$email = trim($rawEmail);
+$identifier = trim($rawIdentifier);
 
 if (
-    $email === ''
-    || filter_var($email, FILTER_VALIDATE_EMAIL) === false
+    $identifier === ''
+    || strlen($identifier) > 100
     || $password === ''
     || strlen($password) > 4096
 ) {
@@ -29,9 +29,15 @@ if (
 
 try {
     $statement = $pdo->prepare(
-        'SELECT user_id, full_name, role, password_hash FROM users WHERE email = :email LIMIT 1'
+        'SELECT user_id, full_name, role, password_hash
+        FROM users
+        WHERE email = :email OR username = :username
+        LIMIT 1'
     );
-    $statement->execute(['email' => $email]);
+    $statement->execute([
+        'email' => $identifier,
+        'username' => $identifier,
+    ]);
     $user = $statement->fetch();
 } catch (PDOException $exception) {
     error_log('User login lookup failed: ' . $exception->getMessage());
