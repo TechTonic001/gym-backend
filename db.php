@@ -1,6 +1,19 @@
 <?php
 declare(strict_types=1);
 
+header('Access-Control-Allow-Origin: https://form-fit-one.vercel.app');
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin, X-CSRF-Token, Cache-Control, Pragma');
+header('Access-Control-Max-Age: 86400');
+header('Vary: Origin, Access-Control-Request-Headers, Access-Control-Request-Method');
+header('Content-Type: application/json; charset=utf-8');
+
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
 function load_local_env(string $filePath): void
 {
     if (!is_file($filePath) || !is_readable($filePath)) {
@@ -61,21 +74,12 @@ $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
 if (in_array($origin, $allowedOrigins, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
-    header('Access-Control-Allow-Credentials: true');
     header('Vary: Origin');
-}
-
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
-header('Content-Type: application/json; charset=utf-8');
-
-if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
-    http_response_code(204);
-    exit;
 }
 
 function json_response(array $payload, int $status = 200): never
 {
+    header('Content-Type: application/json; charset=utf-8');
     http_response_code($status);
     echo json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
