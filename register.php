@@ -15,8 +15,6 @@ try {
         exit();
     }
 
-    require_auth_request('Registration', ['full_name', 'username', 'email', 'password']);
-
     $rawInput = file_get_contents('php://input');
     $jsonData = json_decode($rawInput === false ? '' : $rawInput, true);
     $data = is_array($jsonData) ? $jsonData : $_POST;
