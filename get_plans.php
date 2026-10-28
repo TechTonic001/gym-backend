@@ -10,8 +10,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'GET') {
 
 try {
     $statement = $pdo->query(
-        'SELECT plan_id, name, monthly_price, features, created_at
-        FROM plans
+        'SELECT plan_id, name, monthly_price, features
+        FROM gym_plans
         ORDER BY monthly_price ASC, plan_id ASC'
     );
     $plans = $statement->fetchAll();
@@ -30,7 +30,7 @@ try {
         'plans' => $plans,
         'data' => $plans,
     ]);
-} catch (PDOException $exception) {
-    error_log('Membership plans lookup failed: ' . $exception->getMessage());
-    json_response(['success' => false, 'message' => 'Unable to load membership plans'], 500);
+} catch (Throwable $e) {
+    error_log('Membership plans lookup failed: ' . $e->getMessage());
+    json_response(['success' => false, 'message' => $e->getMessage()], 500);
 }
