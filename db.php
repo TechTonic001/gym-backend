@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+session_save_path('/tmp');
+
 function allowed_origin(): string
 {
     $allowedOrigins = [
@@ -177,6 +179,7 @@ try {
             PDO::ATTR_PERSISTENT => false,
         ]
     );
+    $conn = $pdo;
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode([
