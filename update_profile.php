@@ -103,9 +103,9 @@ try {
         'fitness_goal' => $fitnessGoal,
         'target_weight_kg' => $targetWeightKg,
     ]);
-} catch (PDOException $exception) {
-    error_log('Member profile update failed: ' . $exception->getMessage());
-    json_response(['success' => false, 'message' => 'Unable to update member profile'], 500);
+} catch (Throwable $e) {
+    error_log('Member profile update failed: ' . $e->getMessage());
+    json_response(['success' => false, 'message' => $e->getMessage()], 500);
 }
 
 json_response(['success' => true, 'message' => 'Profile updated successfully.']);
