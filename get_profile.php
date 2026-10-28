@@ -33,9 +33,9 @@ try {
     );
     $statement->execute(['user_id' => $userId]);
     $record = $statement->fetch();
-} catch (PDOException $exception) {
-    error_log('Member profile lookup failed: ' . $exception->getMessage());
-    json_response(['success' => false, 'message' => 'Unable to load member profile'], 500);
+} catch (Throwable $e) {
+    error_log('Member profile lookup failed: ' . $e->getMessage());
+    json_response(['success' => false, 'message' => $e->getMessage()], 500);
 }
 
 if ($record === false) {

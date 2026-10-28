@@ -65,7 +65,7 @@ try {
         'frequency' => $frequency,
         'volume' => $volume,
     ]);
-} catch (PDOException $exception) {
-    error_log('Workout analytics lookup failed: ' . $exception->getMessage());
-    json_response(['success' => false, 'message' => 'Unable to load workout analytics'], 500);
+} catch (Throwable $e) {
+    error_log('Workout analytics lookup failed: ' . $e->getMessage());
+    json_response(['success' => false, 'message' => $e->getMessage()], 500);
 }
