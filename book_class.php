@@ -112,13 +112,13 @@ try {
     ]);
 
     $pdo->commit();
-} catch (PDOException $exception) {
+} catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
 
-    error_log('Class booking failed: ' . $exception->getMessage());
-    json_response(['success' => false, 'message' => 'Unable to book class'], 500);
+    error_log('Class booking failed: ' . $e->getMessage());
+    json_response(['success' => false, 'message' => $e->getMessage()], 500);
 }
 
 json_response(['success' => true, 'message' => 'Class booked successfully.'], 201);
